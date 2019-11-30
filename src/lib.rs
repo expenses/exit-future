@@ -14,7 +14,9 @@ impl Future for Exit {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         let mut receiver = Pin::into_inner(self).0.lock();
-        Pin::new(receiver.deref_mut()).poll(cx).map(drop)
+        let result = Pin::new(receiver.deref_mut()).poll(cx);
+        log::trace!("Poll result: {:?}", result);
+        result.map(drop)
     }
 }
 
