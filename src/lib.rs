@@ -49,7 +49,7 @@ impl Signal {
 
 impl Drop for Signal {
     fn drop(&mut self) {
-        self.fire().unwrap()
+        let _ = self.fire();
     }
 }
 
