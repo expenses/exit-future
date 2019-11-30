@@ -6,8 +6,15 @@ use futures::{Future, FutureExt, channel::oneshot, future::{select, Either}, exe
 use parking_lot::Mutex;
 
 /// Future that resolves when the exit signal has fired.
-#[derive(Clone)]
 pub struct Exit(Arc<Mutex<oneshot::Receiver<()>>>);
+
+impl Clone for Exit {
+    fn clone(&self) -> Self {
+        let count = Arc::strong_count(&self.0);
+        log::trace!("Cloning from {} exit future(s) to {}", count, count + 1);
+        Exit(self.0.clone())
+    }
+}
 
 impl Future for Exit {
     type Output = ();
