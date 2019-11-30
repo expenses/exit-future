@@ -13,9 +13,10 @@ impl Future for Exit {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
-        let mut receiver = Pin::into_inner(self).0.lock();
+        let this = Pin::into_inner(self);
+        let mut receiver = this.0.lock();
         let result = Pin::new(receiver.deref_mut()).poll(cx);
-        log::trace!("Poll result: {:?}", result);
+        log::trace!("Exit future: {}, poll result: {:?}", Arc::strong_count(&this.0), result);
         result.map(drop)
     }
 }
