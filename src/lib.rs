@@ -1,10 +1,12 @@
 use std::pin::Pin;
 use std::task::{Poll, Context};
-use futures::{Future, FutureExt, future::{select, Either}, executor::block_on};
+use futures::{Future, FutureExt, future::{select, Either}, executor::block_on, channel::mpsc};
+
+type Channel = broadcaster::BroadcastChannel<(), mpsc::Sender<()>, mpsc::Receiver<()>>;
 
 /// Future that resolves when the exit signal has fired.
 #[derive(Clone)]
-pub struct Exit(broadcaster::BroadcastChannel<()>);
+pub struct Exit(Channel);
 
 impl Future for Exit {
     type Output = ();
@@ -38,12 +40,12 @@ impl Exit {
 }
 
 /// Exit signal that fires either manually or on drop.
-pub struct Signal(broadcaster::BroadcastChannel<()>);
+pub struct Signal(Channel);
 
 impl Signal {
     /// Fire the signal manually.
     pub fn fire(&self) -> Result<(), ()> {
-        block_on(self.0.send(&())).map_err(drop)
+        self.0.try_send(&()).map_err(drop)
     }
 }
 
@@ -56,10 +58,8 @@ impl Drop for Signal {
 /// Create a signal and exit pair. `Exit` is a future that resolves when the `Signal` object is
 /// either dropped or has `fire` called on it.
 pub fn signal() -> (Signal, Exit) {
-    let channel = broadcaster::BroadcastChannel::new();
-
+    let channel = Channel::with_cap(1);
     let receiver = channel.clone();
-
     (Signal(channel), Exit(receiver))
 }
 
